@@ -104,12 +104,12 @@ int precedencia(char operador) {
         return 0; // Operador inválido
 }
 
-// Função para verificar se um caractere é uma função matemática (log, sen, cos)
+
 int ehFuncaoMatematica(char *str) {
     return (strncmp(str, "log", 3) == 0 || strncmp(str, "sen", 3) == 0 || strncmp(str, "cos", 3) == 0);
 }
 
-// Função para converter expressão posfixa em infixa
+
 char *getFormaInFixa(char *Str) {
     static char resposta[MAX];
     char pilha[MAX][MAX];
