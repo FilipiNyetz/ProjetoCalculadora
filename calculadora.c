@@ -43,12 +43,12 @@ float getValor(char *Str) {
                 pilha[++topo] = valor;
                 i += 2; // Pula sobre 'log'
             } else if (strncmp(&Str[i], "sen", 3) == 0) {
-                operando1 = pilha[topo--] * 0.0174444444444444;
+                operando1 = pilha[topo--] * 0.01744;
                 valor = sin(operando1);
                 pilha[++topo] = valor;
                 i += 2; // Pula sobre 'sen'
             } else if (strncmp(&Str[i], "cos", 3) == 0) {
-                operando1 = pilha[topo--] * 0.0174444444444444;
+                operando1 = pilha[topo--] * 0.01744;
                 valor = cos(operando1);
                 pilha[++topo] = valor;
                 i += 2; // Pula sobre 'cos'
@@ -131,28 +131,49 @@ char *getFormaInFixa(char *Str) {
         } else if (ehOperador(Str[i])) {
             // Se for um operador, desempilha os operandos necessários e realiza a operação
             char operando2[MAX], operando1[MAX], resultado[MAX];
-            char abertura = '\0', fechamento = '\0'; // Variáveis para armazenar os parênteses
 
             // Desempilha os operandos
             strcpy(operando2, pilha[topo--]);
             strcpy(operando1, pilha[topo--]);
 
             // Verifica a precedência e necessidade de parênteses
-            if (precedencia(Str[i]) > precedencia(pilha[topo][0])) {
-                abertura = '(';
-                fechamento = ')';
-            }
+            int prec_op = precedencia(Str[i]);
+            int prec_topo = precedencia(pilha[topo][0]);
+            int precisa_parenteses = (prec_op > prec_topo) || (prec_op == prec_topo && (Str[i] == '*' || Str[i] == '/'));
 
             // Constrói a expressão infixa
-            sprintf(resultado, "%c%s %c %s%c", abertura, operando1, Str[i], operando2, fechamento);
+            resultado[0] = '\0';
+            if (precisa_parenteses) {
+                strcat(resultado, "(");
+                strcat(resultado, operando1);
+                strcat(resultado, " ");
+                strncat(resultado, &Str[i], 1);
+                strcat(resultado, " ");
+                strcat(resultado, operando2);
+                strcat(resultado, ")");
+            } else {
+                strcat(resultado, operando1);
+                strcat(resultado, " ");
+                strncat(resultado, &Str[i], 1);
+                strcat(resultado, " ");
+                strcat(resultado, operando2);
+            }
 
-            // Empilha o resultado
-            strcpy(pilha[++topo], resultado);
+            // Empilha o resultado, exceto se for a última operação matemática
+            if (Str[i + 1] != '\0' && Str[i + 1] != ' ') {
+                strcpy(pilha[++topo], resultado);
+            } else {
+                strcpy(pilha[++topo], operando1);
+                strcat(pilha[topo], " ");
+                strncat(pilha[topo], &Str[i], 1);
+                strcat(pilha[topo], " ");
+                strcat(pilha[topo], operando2);
+            }
 
             // Pula para o próximo operador ou número
             while (Str[i + 1] == ' ')
                 i++;
-        } else {
+        } else if (ehFuncaoMatematica(&Str[i])) {
             // Funções como log, sen, cos
             char operando1[MAX], resultado[MAX];
 
@@ -160,21 +181,49 @@ char *getFormaInFixa(char *Str) {
             strcpy(operando1, pilha[topo--]);
 
             // Constrói a expressão infixa
-            if (ehFuncaoMatematica(&Str[i])) {
-                if (strncmp(&Str[i], "log", 3) == 0) {
-                    sprintf(resultado, "log(%s)", operando1);
-                    strcpy(pilha[++topo], resultado);
-                    i += 2; // Pula sobre 'log'
-                } else if (strncmp(&Str[i], "sen", 3) == 0) {
-                    sprintf(resultado, "sen(%s)", operando1);
-                    strcpy(pilha[++topo], resultado);
-                    i += 2; // Pula sobre 'sen'
-                } else if (strncmp(&Str[i], "cos", 3) == 0) {
-                    sprintf(resultado, "cos(%s)", operando1);
-                    strcpy(pilha[++topo], resultado);
-                    i += 2; // Pula sobre 'cos'
+            if (Str[i] == 'l') {
+                // Se for log, adiciona parênteses apenas se necessário
+                int precisa_parenteses = (precedencia('l') > precedencia(pilha[topo][0]));
+
+                resultado[0] = 'l';
+                resultado[1] = 'o';
+                resultado[2] = 'g';
+                resultado[3] = '(';
+                resultado[4] = '\0';
+                if (precisa_parenteses) {
+                    strcat(resultado, "(");
+                    strcat(resultado, operando1);
+                    strcat(resultado, "))");
+                } else {
+                    strcat(resultado, operando1);
+                    strcat(resultado, ")");
                 }
+            } else if (Str[i] == 's') {
+                // Seno
+                resultado[0] = 's';
+                resultado[1] = 'i';
+                resultado[2] = 'n';
+                resultado[3] = '(';
+                resultado[4] = '\0';
+                strcat(resultado, operando1);
+                strcat(resultado, ")");
+            } else if (Str[i] == 'c') {
+                // Cosseno
+                resultado[0] = 'c';
+                resultado[1] = 'o';
+                resultado[2] = 's';
+                resultado[3] = '(';
+                resultado[4] = '\0';
+                strcat(resultado, operando1);
+                strcat(resultado, ")");
             }
+
+            // Empilha o resultado
+            strcpy(pilha[++topo], resultado);
+
+            // Pula para o próximo operador ou número
+            while (Str[i + 1] == ' ')
+                i++;
         }
     }
 
